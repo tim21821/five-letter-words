@@ -1,16 +1,4 @@
-struct Pair
-    index1::Int
-    index2::Int
-    bitmask::UInt32
-end
-
-struct Quartet
-    index1::Int
-    index2::Int
-    index3::Int
-    index4::Int
-    bitmask::UInt32
-end
+using Graphs
 
 struct Answer
     index1::Int
@@ -19,17 +7,6 @@ struct Answer
     index4::Int
     index5::Int
 end
-
-combine(pair1::Pair, pair2::Pair) = Quartet(
-    pair1.index1,
-    pair1.index2,
-    pair2.index1,
-    pair2.index2,
-    pair1.bitmask | pair2.bitmask,
-)
-
-combine(quartet::Quartet, i::Int) =
-    Answer(quartet.index1, quartet.index2, quartet.index3, quartet.index4, i)
 
 function readfromfile(path::AbstractString)
     lines = open(path) do f
@@ -49,49 +26,47 @@ getbitrepresentation(str::AbstractString)::UInt32 = sum(getbitrepresentation, st
 
 removeanagrams!(words::Vector{String}) = unique!(getbitrepresentation, words)
 
-function findpairs(words::Vector{String})
-    pairs = Vector{Pair}()
+function buildgraph(words::Vector{String})
+    graph = SimpleDiGraph(length(words))
     for i in eachindex(words)
         bits1 = getbitrepresentation(words[i])
         for j = (i+1):lastindex(words)
             bits2 = getbitrepresentation(words[j])
             if bits1 & bits2 == 0
-                push!(pairs, Pair(i, j, bits1 | bits2))
+                add_edge!(graph, i, j)
             end
         end
     end
-    return pairs
+    return graph
 end
 
-function findquartets(pairs::Vector{Pair})
-    quartets = Vector{Quartet}()
-    for i in eachindex(pairs)
-        if i % 10_000 == 0
-            println("$i, $(length(quartets))")
-        end
-        for j = (i+1):lastindex(pairs)
-            if pairs[i].bitmask & pairs[j].bitmask == 0
-                push!(quartets, combine(pairs[i], pairs[j]))
-            end
-        end
-    end
-    return unique!(q -> Set([q.index1, q.index2, q.index3, q.index4]), quartets)
-end
-
-function findanswers(quartets::Vector{Quartet}, words::Vector{String})
+function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
     answers = Vector{Answer}()
-    for i in eachindex(quartets)
-        if i % 100_000 == 0
-            println("$i, $(length(answers))")
-        end
-        for j in eachindex(words)
-            wordbits = getbitrepresentation(words[j])
-            if quartets[i].bitmask & wordbits == 0
-                push!(answers, combine(quartets[i], j))
+    for i in vertices(graph)
+        bits1 = getbitrepresentation(words[i])
+        for j in neighbors(graph, i)
+            bits2 = getbitrepresentation(words[j])
+            if bits1 & bits2 == 0
+                for k in neighbors(graph, j)
+                    bits3 = getbitrepresentation(words[k])
+                    if (bits1 | bits2) & bits3 == 0
+                        for l in neighbors(graph, k)
+                            bits4 = getbitrepresentation(words[l])
+                            if (bits1 | bits2 | bits3) & bits4 == 0
+                                for m in neighbors(graph, l)
+                                    bits5 = getbitrepresentation(words[m])
+                                    if (bits1 | bits2 | bits3 | bits4) & bits5 == 0
+                                        push!(answers, Answer(i, j, k, l, m))
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
             end
         end
     end
-    return unique!(a -> Set([a.index1, a.index2, a.index3, a.index4, a.index5]), answers)
+    return answers
 end
 
 function saveanswers(path::AbstractString, answers::Vector{Answer}, words::Vector{String})
@@ -111,11 +86,9 @@ function main()
     println("$(length(words)) words are five letters long and don't repeat letters")
     removeanagrams!(words)
     println("After removing anagrams, there are $(length(words)) words")
-    pairs = findpairs(words)
-    println("Found $(length(pairs)) pairs of words without matching letters")
-    quartets = findquartets(pairs)
-    println("Found $(length(quartets)) quartets of words without matching letters")
-    answers = findanswers(quartets, words)
+    graph = buildgraph(words)
+    println("Built graph with $(nv(graph)) vertices and $(ne(graph)) edges")
+    answers = findanswers(graph, words)
     println("Found $(length(answers)) valid answers")
     saveanswers("answer.txt", answers, words)
 end
