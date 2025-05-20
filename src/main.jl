@@ -1,5 +1,34 @@
 using Graphs
 
+const LETTERS = [
+    'q',
+    'x',
+    'j',
+    'z',
+    'v',
+    'f',
+    'w',
+    'b',
+    'k',
+    'g',
+    'p',
+    'm',
+    'h',
+    'd',
+    'c',
+    'y',
+    't',
+    'l',
+    'n',
+    'u',
+    'r',
+    'o',
+    'i',
+    's',
+    'e',
+    'a',
+]
+
 struct Answer
     index1::Int
     index2::Int
@@ -25,6 +54,9 @@ getbitrepresentation(c::Char) = one(UInt32) << (UInt8(c) - 0x61)
 getbitrepresentation(str::AbstractString)::UInt32 = sum(getbitrepresentation, str)
 
 removeanagrams!(words::Vector{String}) = unique!(getbitrepresentation, words)
+
+lowestletterfrequency(str::AbstractString) =
+    minimum(c -> findfirst(x -> x == c, LETTERS), str)
 
 function buildgraph(words::Vector{String})
     graph = SimpleDiGraph(length(words))
@@ -86,6 +118,7 @@ function main()
     println("$(length(words)) words are five letters long and don't repeat letters")
     removeanagrams!(words)
     println("After removing anagrams, there are $(length(words)) words")
+    sort!(words; by = lowestletterfrequency, rev = true)
     graph = buildgraph(words)
     println("Built graph with $(nv(graph)) vertices and $(ne(graph)) edges")
     answers = findanswers(graph, words)
