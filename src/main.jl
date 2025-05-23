@@ -74,28 +74,59 @@ end
 
 function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
     answers = Vector{Answer}()
+    hasntworked = Set{UInt32}()
     for i in vertices(graph)
         bits1 = getbitrepresentation(words[i])
+        bits1worked = false
+        if bits1 in hasntworked
+            continue
+        end
         for j in neighbors(graph, i)
             bits2 = getbitrepresentation(words[j])
-            if bits1 & bits2 == 0
-                for k in neighbors(graph, j)
-                    bits3 = getbitrepresentation(words[k])
-                    if (bits1 | bits2) & bits3 == 0
-                        for l in neighbors(graph, k)
-                            bits4 = getbitrepresentation(words[l])
-                            if (bits1 | bits2 | bits3) & bits4 == 0
-                                for m in neighbors(graph, l)
-                                    bits5 = getbitrepresentation(words[m])
-                                    if (bits1 | bits2 | bits3 | bits4) & bits5 == 0
-                                        push!(answers, Answer(i, j, k, l, m))
-                                    end
-                                end
-                            end
+            bitmask2 = bits1 | bits2
+            bitmask2worked = false
+            if bits1 & bits2 != 0 || bitmask2 in hasntworked
+                continue
+            end
+            for k in neighbors(graph, j)
+                bits3 = getbitrepresentation(words[k])
+                bitmask3 = bitmask2 | bits3
+                bitmask3worked = false
+                if (bitmask2) & bits3 != 0 || bitmask3 in hasntworked
+                    continue
+                end
+                for l in neighbors(graph, k)
+                    bits4 = getbitrepresentation(words[l])
+                    bitmask4 = bitmask3 | bits4
+                    bitmask4worked = false
+                    if (bitmask3) & bits4 != 0 || bitmask4 in hasntworked
+                        continue
+                    end
+                    for m in neighbors(graph, l)
+                        bits5 = getbitrepresentation(words[m])
+                        if (bitmask4) & bits5 != 0
+                            continue
                         end
+                        push!(answers, Answer(i, j, k, l, m))
+                        bits1worked = true
+                        bitmask2worked = true
+                        bitmask3worked = true
+                        bitmask4worked = true
+                    end
+                    if !bitmask4worked
+                        push!(hasntworked, bitmask4)
                     end
                 end
+                if !bitmask3worked
+                    push!(hasntworked, bitmask3)
+                end
             end
+            if !bitmask2worked
+                push!(hasntworked, bitmask2)
+            end
+        end
+        if !bits1worked
+            push!(hasntworked, bits1)
         end
     end
     return answers
