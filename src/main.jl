@@ -60,10 +60,11 @@ lowestletterfrequency(str::AbstractString) =
 
 function buildgraph(words::Vector{String})
     graph = SimpleDiGraph(length(words))
+    bits = [getbitrepresentation(word) for word in words]
     for i in eachindex(words)
-        bits1 = getbitrepresentation(words[i])
+        bits1 = bits[i]
         for j = (i+1):lastindex(words)
-            bits2 = getbitrepresentation(words[j])
+            bits2 = bits[j]
             if bits1 & bits2 == 0
                 add_edge!(graph, i, j)
             end
@@ -75,35 +76,36 @@ end
 function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
     answers = Vector{Answer}()
     hasntworked = Set{UInt32}()
+    bits = [getbitrepresentation(word) for word in words]
     for i in vertices(graph)
-        bits1 = getbitrepresentation(words[i])
+        bits1 = bits[i]
         bits1worked = false
         if bits1 in hasntworked
             continue
         end
         for j in neighbors(graph, i)
-            bits2 = getbitrepresentation(words[j])
+            bits2 = bits[j]
             bitmask2 = bits1 | bits2
             bitmask2worked = false
             if bits1 & bits2 != 0 || bitmask2 in hasntworked
                 continue
             end
             for k in neighbors(graph, j)
-                bits3 = getbitrepresentation(words[k])
+                bits3 = bits[k]
                 bitmask3 = bitmask2 | bits3
                 bitmask3worked = false
                 if (bitmask2) & bits3 != 0 || bitmask3 in hasntworked
                     continue
                 end
                 for l in neighbors(graph, k)
-                    bits4 = getbitrepresentation(words[l])
+                    bits4 = bits[l]
                     bitmask4 = bitmask3 | bits4
                     bitmask4worked = false
                     if (bitmask3) & bits4 != 0 || bitmask4 in hasntworked
                         continue
                     end
                     for m in neighbors(graph, l)
-                        bits5 = getbitrepresentation(words[m])
+                        bits5 = bits[m]
                         if (bitmask4) & bits5 != 0
                             continue
                         end
