@@ -45,7 +45,7 @@ function readfromfile(path::AbstractString)
     return lines
 end
 
-isvalidword(word::AbstractString) = return length(word) == 5 && length(Set(word)) == 5
+isvalidword(word::AbstractString) = return length(word) == 5 && count_ones(getbitrepresentation(word)) == 5
 
 filtervalidwords!(words::Vector{String}) = filter!(isvalidword, words)
 
@@ -75,7 +75,7 @@ end
 
 function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
     answers = Vector{Answer}()
-    hasntworked = Set{UInt32}()
+    hasntworked = BitSet()
     bits = [getbitrepresentation(word) for word in words]
     for i in vertices(graph)
         bits1 = bits[i]
