@@ -45,7 +45,8 @@ function readfromfile(path::AbstractString)
     return lines
 end
 
-isvalidword(word::AbstractString) = return length(word) == 5 && count_ones(getbitrepresentation(word)) == 5
+isvalidword(word::AbstractString) =
+    return length(word) == 5 && count_ones(getbitrepresentation(word)) == 5
 
 filtervalidwords!(words::Vector{String}) = filter!(isvalidword, words)
 
