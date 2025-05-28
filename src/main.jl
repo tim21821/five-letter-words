@@ -1,3 +1,4 @@
+using BufferedStreams
 using Graphs
 
 const LETTERS = [
@@ -139,12 +140,12 @@ function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
 end
 
 function saveanswers(path::AbstractString, answers::Vector{Answer}, words::Vector{String})
-    s = ""
+    out = BufferedOutputStream()
     for answer in answers
-        s *= "$(words[answer.index1]), $(words[answer.index2]), $(words[answer.index3]), $(words[answer.index4]), $(words[answer.index5])\n"
+        print(out, "$(words[answer.index1]), $(words[answer.index2]), $(words[answer.index3]), $(words[answer.index4]), $(words[answer.index5])\n")
     end
     open(path, "w") do f
-        write(f, s)
+        write(f, take!(out))
     end
 end
 
