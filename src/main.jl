@@ -77,8 +77,8 @@ end
 
 function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
     bits = [getbitrepresentation(word) for word in words]
-    all_answers = [Vector{Answer}() for _ in 1:Threads.nthreads()]
-    all_hasntworked = [BitSet() for _ in 1:Threads.nthreads()]
+    all_answers = [Vector{Answer}() for _ = 1:Threads.nthreads()]
+    all_hasntworked = [BitSet() for _ = 1:Threads.nthreads()]
     Threads.@threads for i in vertices(graph)
         tid = Threads.threadid()
         answers = all_answers[tid]
@@ -142,7 +142,10 @@ end
 function saveanswers(path::AbstractString, answers::Vector{Answer}, words::Vector{String})
     out = BufferedOutputStream()
     for answer in answers
-        print(out, "$(words[answer.index1]), $(words[answer.index2]), $(words[answer.index3]), $(words[answer.index4]), $(words[answer.index5])\n")
+        print(
+            out,
+            "$(words[answer.index1]), $(words[answer.index2]), $(words[answer.index3]), $(words[answer.index4]), $(words[answer.index5])\n",
+        )
     end
     open(path, "w") do f
         write(f, take!(out))
