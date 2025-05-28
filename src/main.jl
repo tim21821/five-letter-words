@@ -75,10 +75,13 @@ function buildgraph(words::Vector{String})
 end
 
 function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
-    answers = Vector{Answer}()
-    hasntworked = BitSet()
     bits = [getbitrepresentation(word) for word in words]
-    for i in vertices(graph)
+    all_answers = [Vector{Answer}() for _ in 1:Threads.nthreads()]
+    all_hasntworked = [BitSet() for _ in 1:Threads.nthreads()]
+    Threads.@threads for i in vertices(graph)
+        tid = Threads.threadid()
+        answers = all_answers[tid]
+        hasntworked = all_hasntworked[tid]
         bits1 = bits[i]
         bits1worked = false
         if bits1 in hasntworked
@@ -132,7 +135,7 @@ function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
             push!(hasntworked, bits1)
         end
     end
-    return answers
+    return reduce(vcat, all_answers)
 end
 
 function saveanswers(path::AbstractString, answers::Vector{Answer}, words::Vector{String})
