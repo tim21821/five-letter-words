@@ -30,14 +30,6 @@ const LETTERS = [
     'a',
 ]
 
-struct Answer
-    index1::Int
-    index2::Int
-    index3::Int
-    index4::Int
-    index5::Int
-end
-
 function readfromfile(path::AbstractString)
     lines = open(path) do f
         readlines(f)
@@ -77,7 +69,7 @@ end
 
 function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
     bits = [getbitrepresentation(word) for word in words]
-    all_answers = [Vector{Answer}() for _ = 1:Threads.nthreads()]
+    all_answers = [Vector{NTuple{5,Int}}() for _ = 1:Threads.nthreads()]
     all_hasntworked = [BitSet() for _ = 1:Threads.nthreads()]
     Threads.@threads for i in vertices(graph)
         tid = Threads.threadid()
@@ -114,7 +106,7 @@ function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
                         if (bitmask4) & bits5 != 0
                             continue
                         end
-                        push!(answers, Answer(i, j, k, l, m))
+                        push!(answers, (i, j, k, l, m))
                         bits1worked = true
                         bitmask2worked = true
                         bitmask3worked = true
@@ -139,12 +131,16 @@ function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
     return reduce(vcat, all_answers)
 end
 
-function saveanswers(path::AbstractString, answers::Vector{Answer}, words::Vector{String})
+function saveanswers(
+    path::AbstractString,
+    answers::Vector{NTuple{5,Int}},
+    words::Vector{String},
+)
     out = BufferedOutputStream()
     for answer in answers
         print(
             out,
-            "$(words[answer.index1]), $(words[answer.index2]), $(words[answer.index3]), $(words[answer.index4]), $(words[answer.index5])\n",
+            "$(words[answer[1]]), $(words[answer[2]]), $(words[answer[3]]), $(words[answer[4]]), $(words[answer[5]])\n",
         )
     end
     open(path, "w") do f
