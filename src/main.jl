@@ -70,35 +70,35 @@ end
 function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
     bits = [getbitrepresentation(word) for word in words]
     all_answers = [Vector{NTuple{5,Int}}() for _ = 1:Threads.nthreads()]
-    all_hasntworked = [BitSet() for _ = 1:Threads.nthreads()]
-    Threads.@threads for i in vertices(graph)
+    hasntworked = BitSet()
+    u = Threads.SpinLock()
+    Threads.@threads :dynamic for i in vertices(graph)
         tid = Threads.threadid()
         answers = all_answers[tid]
-        hasntworked = all_hasntworked[tid]
         bits1 = bits[i]
         bits1worked = false
-        if any(s -> bits1 in s, all_hasntworked)
+        if bits1 in hasntworked
             continue
         end
         for j in neighbors(graph, i)
             bits2 = bits[j]
             bitmask2 = bits1 | bits2
             bitmask2worked = false
-            if bits1 & bits2 != 0 || any(s -> bitmask2 in s, all_hasntworked)
+            if bits1 & bits2 != 0 || bitmask2 in hasntworked
                 continue
             end
             for k in neighbors(graph, j)
                 bits3 = bits[k]
                 bitmask3 = bitmask2 | bits3
                 bitmask3worked = false
-                if (bitmask2) & bits3 != 0 || any(s -> bitmask3 in s, all_hasntworked)
+                if (bitmask2) & bits3 != 0 || bitmask3 in hasntworked
                     continue
                 end
                 for l in neighbors(graph, k)
                     bits4 = bits[l]
                     bitmask4 = bitmask3 | bits4
                     bitmask4worked = false
-                    if (bitmask3) & bits4 != 0 || any(s -> bitmask4 in s, all_hasntworked)
+                    if (bitmask3) & bits4 != 0 || bitmask4 in hasntworked
                         continue
                     end
                     for m in neighbors(graph, l)
@@ -113,19 +113,27 @@ function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
                         bitmask4worked = true
                     end
                     if !bitmask4worked
-                        push!(hasntworked, bitmask4)
+                        Threads.lock(u) do
+                            push!(hasntworked, bitmask4)
+                        end
                     end
                 end
                 if !bitmask3worked
-                    push!(hasntworked, bitmask3)
+                    Threads.lock(u) do
+                        push!(hasntworked, bitmask3)
+                    end
                 end
             end
             if !bitmask2worked
-                push!(hasntworked, bitmask2)
+                Threads.lock(u) do
+                    push!(hasntworked, bitmask2)
+                end
             end
         end
         if !bits1worked
-            push!(hasntworked, bits1)
+            Threads.lock(u) do
+                push!(hasntworked, bits1)
+            end
         end
     end
     return reduce(vcat, all_answers)
