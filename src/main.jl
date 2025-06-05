@@ -1,4 +1,3 @@
-using BufferedStreams
 using Graphs
 
 const LETTERS = [
@@ -144,15 +143,13 @@ function saveanswers(
     answers::Vector{NTuple{5,Int}},
     words::Vector{String},
 )
-    out = BufferedOutputStream()
-    for answer in answers
-        print(
-            out,
-            "$(words[answer[1]]), $(words[answer[2]]), $(words[answer[3]]), $(words[answer[4]]), $(words[answer[5]])\n",
-        )
-    end
     open(path, "w") do f
-        write(f, take!(out))
+        for answer in answers
+            println(
+                f,
+                "$(words[answer[1]]), $(words[answer[2]]), $(words[answer[3]]), $(words[answer[4]]), $(words[answer[5]])",
+            )
+        end
     end
 end
 
