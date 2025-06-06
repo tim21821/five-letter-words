@@ -54,10 +54,10 @@ lowestletterfrequency(str::AbstractString) =
 function buildgraph(words::Vector{String})
     graph = SimpleDiGraph(length(words))
     bits = [getbitrepresentation(word) for word in words]
-    for i in eachindex(words)
+    @simd for i in eachindex(words)
         bits1 = bits[i]
-        for j = (i+1):lastindex(words)
-            bits2 = bits[j]
+        @simd for j = (i+1):lastindex(words)
+            @inbounds bits2 = bits[j]
             if bits1 & bits2 == 0
                 add_edge!(graph, i, j)
             end
