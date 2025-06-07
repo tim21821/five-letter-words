@@ -1,4 +1,5 @@
 using Graphs
+using ThreadsX
 
 const LETTERS = [
     'q',
@@ -157,8 +158,8 @@ function main()
     println("$(length(words)) words are five letters long and don't repeat letters")
     removeanagrams!(words)
     println("After removing anagrams, there are $(length(words)) words")
-    sort!(words; by = lowestletterfrequency, rev = true)
-    bits = [getbitrepresentation(word) for word in words]
+    ThreadsX.sort!(words; by = lowestletterfrequency, rev = true)
+    bits = ThreadsX.map(getbitrepresentation, words)
     graph = buildgraph(bits)
     println("Built graph with $(nv(graph)) vertices and $(ne(graph)) edges")
     answers = findanswers(graph, bits)
