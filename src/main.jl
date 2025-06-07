@@ -51,12 +51,10 @@ removeanagrams!(words::Vector{String}) = unique!(getbitrepresentation, words)
 lowestletterfrequency(str::AbstractString) =
     minimum(c -> findfirst(x -> x == c, LETTERS), str)
 
-function buildgraph(words::Vector{String})
-    graph = SimpleDiGraph(length(words))
-    bits = [getbitrepresentation(word) for word in words]
-    @simd for i in eachindex(words)
-        bits1 = bits[i]
-        @simd for j = (i+1):lastindex(words)
+function buildgraph(bits::Vector{UInt32})
+    graph = SimpleDiGraph(length(bits))
+    for (i, bits1) in enumerate(bits)
+        @simd for j = (i+1):lastindex(bits)
             @inbounds bits2 = bits[j]
             if bits1 & bits2 == 0
                 add_edge!(graph, i, j)
@@ -66,8 +64,7 @@ function buildgraph(words::Vector{String})
     return graph
 end
 
-function findanswers(graph::SimpleDiGraph{Int}, words::Vector{String})
-    bits = [getbitrepresentation(word) for word in words]
+function findanswers(graph::SimpleDiGraph{Int}, bits::Vector{UInt32})
     all_answers = [Vector{NTuple{5,Int}}() for _ = 1:Threads.nthreads()]
     hasntworked = BitSet()
     u = Threads.SpinLock()
@@ -161,9 +158,10 @@ function main()
     removeanagrams!(words)
     println("After removing anagrams, there are $(length(words)) words")
     sort!(words; by = lowestletterfrequency, rev = true)
-    graph = buildgraph(words)
+    bits = [getbitrepresentation(word) for word in words]
+    graph = buildgraph(bits)
     println("Built graph with $(nv(graph)) vertices and $(ne(graph)) edges")
-    answers = findanswers(graph, words)
+    answers = findanswers(graph, bits)
     println("Found $(length(answers)) valid answers")
     saveanswers("answer.txt", answers, words)
 end
